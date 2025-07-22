@@ -4,14 +4,20 @@ manifest:
       url-base: https://github.com/zmkfirmware
     - name: prospector
       url-base: https://github.com/t-ogura
+    - name: caksoylar
+      url-base: https://github.com/caksoylar
   projects:
     - name: zmk
       remote: zmkfirmware
-      revision: main
+      revision: v0.2.1
       import: app/west.yml
     - name: prospector-zmk-module
       remote: prospector
       revision: feature/lcd-backlight-fix
       path: modules/prospector-zmk-module
+    - name: zmk-rgbled-widget
+      remote: caksoylar
+      revision: main
+      path: modules/zmk-rgbled-widget
   self:
     path: config

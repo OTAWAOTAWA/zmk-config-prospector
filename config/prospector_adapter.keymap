@@ -6,14 +6,13 @@
 
 #include <behaviors.dtsi>
 #include <dt-bindings/zmk/keys.h>
-#include <dt-bindings/zmk/matrix_transform.h>
 
 / {
     keymap {
         compatible = "zmk,keymap";
 
         default_layer {
-            // Mock kscan dongle keymap - minimal configuration for display testing
+            // Mock kscan dongle keymap - minimal configuration
             bindings = <&none>;
         };
     };

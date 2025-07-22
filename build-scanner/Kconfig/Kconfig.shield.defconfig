@@ -1,0 +1,2 @@
+osource "/home/ogu/workspace/prospector/zmk-config-prospector/modules/prospector-zmk-module/boards/shields/*/Kconfig.defconfig"
+osource "/home/ogu/workspace/prospector/zmk-config-prospector/zmk/app/boards/shields/*/Kconfig.defconfig"
