@@ -11,7 +11,7 @@ manifest:
       import: app/west.yml
     - name: prospector-zmk-module
       remote: prospector
-      revision: feature/layer-event-listener
+      revision: 0dc0624e00998b5f6fbda4f3e401fd28a07d32e1
       path: modules/prospector-zmk-module
   self:
     path: config
