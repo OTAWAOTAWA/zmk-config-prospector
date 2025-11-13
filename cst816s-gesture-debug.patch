@@ -1,0 +1,98 @@
+diff --git a/drivers/input/input_cst816s.c b/drivers/input/input_cst816s.c
+index 6cebddf33..f00cb1a20 100644
+--- a/drivers/input/input_cst816s.c
++++ b/drivers/input/input_cst816s.c
+@@ -78,6 +78,16 @@ LOG_MODULE_REGISTER(cst816s, CONFIG_INPUT_LOG_LEVEL);
+ #define EVENT_CONTACT    0x02U
+ #define EVENT_NONE       0x03U
+ 
++/* CST816S Gesture IDs */
++#define GESTURE_NONE        0x00U
++#define GESTURE_SWIPE_UP    0x01U
++#define GESTURE_SWIPE_DOWN  0x02U
++#define GESTURE_SWIPE_LEFT  0x03U
++#define GESTURE_SWIPE_RIGHT 0x04U
++#define GESTURE_SINGLE_CLICK 0x05U
++#define GESTURE_DOUBLE_CLICK 0x0BU
++#define GESTURE_LONG_PRESS   0x0CU
++
+ /** cst816s configuration (DT). */
+ struct cst816s_config {
+ 	struct i2c_dt_spec i2c;
+@@ -109,11 +119,20 @@ static int cst816s_process(const struct device *dev)
+ 
+ 	int r;
+ 	uint8_t event;
++	uint8_t gesture_id;
+ 	uint16_t row, col;
+ 	bool pressed;
+ 	uint16_t x;
+ 	uint16_t y;
+ 
++	/* Read gesture ID first (register 0x01) */
++	r = i2c_reg_read_byte_dt(&cfg->i2c, CST816S_REG_GESTURE_ID, &gesture_id);
++	if (r < 0) {
++		LOG_ERR("Could not read gesture data");
++		gesture_id = GESTURE_NONE;
++	}
++	LOG_INF("🔍 CST816S: Read GESTURE_ID register: 0x%02x (0x00=NONE, 0x01=UP, 0x02=DOWN, 0x03=LEFT, 0x04=RIGHT)", gesture_id);
++
+ 	r = i2c_burst_read_dt(&cfg->i2c, CST816S_REG_XPOS_H, (uint8_t *)&x, sizeof(x));
+ 	if (r < 0) {
+ 		LOG_ERR("Could not read x data");
+@@ -131,7 +150,54 @@ static int cst816s_process(const struct device *dev)
+ 	event = (x & 0xff) >> CST816S_EVENT_BITS_POS;
+ 	pressed = (event == EVENT_PRESS_DOWN) || (event == EVENT_CONTACT);
+ 
+-	LOG_DBG("event: %d, row: %d, col: %d", event, row, col);
++	LOG_INF("📊 CST816S EVENT: event=%d, pressed=%d, x=%d, y=%d, gesture=0x%02x",
++	        event, pressed, col, row, gesture_id);
++
++	/* Report gesture as directional keys */
++	if (gesture_id != GESTURE_NONE) {
++		switch (gesture_id) {
++		case GESTURE_SWIPE_UP:
++			LOG_INF("CST816S: ⬆️ Swipe UP detected");
++			input_report_key(dev, INPUT_KEY_UP, 1, false, K_FOREVER);
++			input_report_key(dev, INPUT_KEY_UP, 0, true, K_FOREVER);
++			break;
++		case GESTURE_SWIPE_DOWN:
++			LOG_INF("CST816S: ⬇️ Swipe DOWN detected");
++			LOG_DBG("📤 Driver: Reporting INPUT_KEY_DOWN press (1) to input subsystem");
++			input_report_key(dev, INPUT_KEY_DOWN, 1, false, K_FOREVER);
++			LOG_DBG("📤 Driver: Reporting INPUT_KEY_DOWN release (0) to input subsystem");
++			input_report_key(dev, INPUT_KEY_DOWN, 0, true, K_FOREVER);
++			LOG_DBG("✅ Driver: INPUT_KEY_DOWN events reported successfully");
++			break;
++		case GESTURE_SWIPE_LEFT:
++			LOG_INF("CST816S: ⬅️ Swipe LEFT detected");
++			input_report_key(dev, INPUT_KEY_LEFT, 1, false, K_FOREVER);
++			input_report_key(dev, INPUT_KEY_LEFT, 0, true, K_FOREVER);
++			break;
++		case GESTURE_SWIPE_RIGHT:
++			LOG_INF("CST816S: ➡️ Swipe RIGHT detected");
++			input_report_key(dev, INPUT_KEY_RIGHT, 1, false, K_FOREVER);
++			input_report_key(dev, INPUT_KEY_RIGHT, 0, true, K_FOREVER);
++			break;
++		case GESTURE_SINGLE_CLICK:
++			LOG_DBG("CST816S: Single click detected");
++			/* Handled as normal touch */
++			break;
++		case GESTURE_DOUBLE_CLICK:
++			LOG_INF("CST816S: Double click detected");
++			input_report_key(dev, INPUT_BTN_MIDDLE, 1, false, K_FOREVER);
++			input_report_key(dev, INPUT_BTN_MIDDLE, 0, true, K_FOREVER);
++			break;
++		case GESTURE_LONG_PRESS:
++			LOG_INF("CST816S: Long press detected");
++			input_report_key(dev, INPUT_BTN_RIGHT, 1, false, K_FOREVER);
++			input_report_key(dev, INPUT_BTN_RIGHT, 0, true, K_FOREVER);
++			break;
++		default:
++			LOG_DBG("CST816S: Unknown gesture: 0x%02x", gesture_id);
++			break;
++		}
++	}
+ 
+ 	if (pressed) {
+ 		input_report_abs(dev, INPUT_ABS_X, col, false, K_FOREVER);
